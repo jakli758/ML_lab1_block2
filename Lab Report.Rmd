@@ -1,0 +1,137 @@
+---
+title: "Lab Report: Lab 1 - Block 2"
+output: html_document
+---
+# 1. Ensemble Methods
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+library(dplyr)
+library(kableExtra)
+library(ggplot2)
+source("Exercise1.R")
+# Define the file path where the results will be saved
+results_file <- "random_forest_results.Rds"
+# Check if the results file exists
+if (file.exists(results_file)) {
+  # Load results from the saved file
+  results <- readRDS(results_file)
+} else {
+  results <- run_experiment()
+  
+  # Save the results to disk for future use
+  saveRDS(results, results_file)
+  
+  # Render the results in a markdown table
+}
+```
+
+```{r render_tables, echo=FALSE, fig.width=3, fig.height=3, fig.align='center'}
+# Generate data for condition x1 < x2
+condition_1 <- quote(x1 < x2)
+data_x1_lt_x2 <- generate_data(seed = 1234, condition = condition_1)
+
+# Create scatterplot with square aspect ratio and increased saturation
+plot_x1_lt_x2 <- ggplot(data_x1_lt_x2, aes(x = x1, y = x2, color = y)) +
+  geom_point(size = 1) +  # Adjusted point size for better visibility
+  scale_color_manual(values = c("#E41A1C", "#377EB8")) +  # Explicitly defined vibrant colors
+  labs(x = "x1", y = "x2") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.margin = grid::unit(c(10, 10, 10, 10), "pt")  # Properly set margins
+  ) +
+  coord_fixed()  # Ensures the plot is square
+
+knitr::opts_chunk$set(fig.align = "right")
+plot_x1_lt_x2
+
+
+# Create the table data
+table_data_x1_lt_x2 <- data.frame(
+  TreeCount = c(1, 10, 100),
+  Mean = results[["x1 < x2"]]$means,
+  Variance = results[["x1 < x2"]]$variances
+)
+
+# Render the table (center-aligned)
+table_data_x1_lt_x2 %>%
+  kbl(
+    col.names = c("Tree Count", "Mean", "Variance"),
+    caption = "Results for Condition: x1 < x2"
+  ) %>%
+  kable_styling(full_width = FALSE, position = "center")
+
+# Generate data for condition x1 < 0.5
+condition_2 <- quote(x1 < 0.5)
+data_x1_lt_0_5 <- generate_data(seed = 1234, condition = condition_2)
+
+# Create scatterplot with square aspect ratio and increased saturation
+plot_x1_lt_0_5 <- ggplot(data_x1_lt_0_5, aes(x = x1, y = x2, color = y)) +
+  geom_point(size = 1) +  # Adjusted point size for better visibility
+  scale_color_manual(values = c("#E41A1C", "#377EB8")) +  # Explicitly defined vibrant colors
+  labs(x = "x1", y = "x2") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.margin = grid::unit(c(10, 10, 10, 10), "pt")  # Properly set margins
+  ) +
+  coord_fixed()  # Ensures the plot is square
+
+# Render the plot
+plot_x1_lt_0_5
+
+# Create the table data
+table_data_x1_lt_0_5 <- data.frame(
+  TreeCount = c(1, 10, 100),
+  Mean = results[["x1 < 0.5"]]$means,
+  Variance = results[["x1 < 0.5"]]$variances
+)
+
+# Render the table (center-aligned)
+table_data_x1_lt_0_5 %>%
+  kbl(
+    col.names = c("Tree Count", "Mean", "Variance"),
+    caption = "Results for Condition: x1 < 0.5"
+  ) %>%
+  kable_styling(full_width = FALSE, position = "center")
+
+# Generate data for checkerboard condition
+condition_3 <- quote((x1 < 0.5 & x2 < 0.5) | (x1 > 0.5 & x2 > 0.5))
+data_checkerboard <- generate_data(seed = 1234, condition = condition_3)
+
+# Create scatterplot with square aspect ratio and increased saturation
+plot_checkerboard <- ggplot(data_checkerboard, aes(x = x1, y = x2, color = y)) +
+  geom_point(size = 1) +  # Adjusted point size for better visibility
+  scale_color_manual(values = c("#E41A1C", "#377EB8")) +  # Explicitly defined vibrant colors
+  labs(x = "x1", y = "x2") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.margin = grid::unit(c(10, 10, 10, 10), "pt")  # Properly set margins
+  ) +
+  coord_fixed()  # Ensures the plot is square
+
+# Render the plot
+plot_checkerboard
+
+# Create the table data
+table_data_checkerboard <- data.frame(
+  TreeCount = c(1, 10, 100),
+  Mean = results[["checkerboard"]]$means,
+  Variance = results[["checkerboard"]]$variances
+)
+
+# Render the table (center-aligned)
+table_data_checkerboard %>%
+  kbl(
+    col.names = c("Tree Count", "Mean", "Variance"),
+    caption = "Results for Condition: Checkerboard"
+  ) %>%
+  kable_styling(full_width = FALSE, position = "center")
+```
+
+**Question:** What happens with the mean error rate when the number of trees in a forest increases? Why? <br>
+**Answer:** In this experiment, as the number of trees increases from 1 to 100, we observe a decreasing trend in the mean error rate. This is due to the random forest's ability to average predictions from multiple trees, reducing variance and improving overall accuracy. <br><br>
+
+**Question:** The third dataset represents a slightly more complicated classification problem
+than the first one. Still, you should get better performance for it when using sufficient trees in the random forest. Explain why you get better performance. <br>
+**Answer:** Decision trees rely on axis-aligned splits (e.g. x1 < a, x2 > b), these splits lead to the creation of rectangular regions. A linear boundary such as x > y is not easily represented through these splits. As such, random forests are poorly suited to model linear relationships. Through feature engineering a new feature $z$ with $z=x_1-x_2$, we could capture this linear relationship and allow the model to use axis-aligned splits to capture the linear relationship between $x_1$ and $x_2$. This demonstrates the importance of understanding the problem you are dealing with and making informed decisions regarding model and feature choice. While the checkerboard is a more complex relationship, it is easy to capture through rectangular regions and thus, as soon as there is a sufficient number of trees, the performance is very good. 
