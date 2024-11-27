@@ -135,3 +135,250 @@ table_data_checkerboard %>%
 **Question:** The third dataset represents a slightly more complicated classification problem
 than the first one. Still, you should get better performance for it when using sufficient trees in the random forest. Explain why you get better performance. <br>
 **Answer:** Decision trees rely on axis-aligned splits (e.g. x1 < a, x2 > b), these splits lead to the creation of rectangular regions. A linear boundary such as x > y is not easily represented through these splits. As such, random forests are poorly suited to model linear relationships. Through feature engineering a new feature $z$ with $z=x_1-x_2$, we could capture this linear relationship and allow the model to use axis-aligned splits to capture the linear relationship between $x_1$ and $x_2$. This demonstrates the importance of understanding the problem you are dealing with and making informed decisions regarding model and feature choice. While the checkerboard is a more complex relationship, it is easy to capture through rectangular regions and thus, as soon as there is a sufficient number of trees, the performance is very good. 
+
+
+
+# 2. Mixture models
+
+## Implementation
+
+At first, the missing parts in the code template were implemented following the given formulas. In the E-step the weights are computed using the first two formulas. For each datapoint and model the weights are computed, so we iterate them in two loops and calculate them over all dimensions. To get the correct results it is necessary to normalise the weights in the end, even though it is not in the formulas. This is due to the split of the weight on the different models. 
+```{r eval=FALSE}
+# E-step: Computation of the weights
+  # iterate all datapoints
+  for (i in 1:n){
+    # iterate all models 
+    for (m in 1:M){
+      bern <- 1 # starting value for bernoulli
+      for (d in 1:D){
+        bern_d <- mu[m,d]^(x[i,d]) * (1-mu[m,d])^(1-x[i,d]) # compute bernoulli for every dimension
+        bern <- bern * bern_d # update the product
+      }
+      w[i,m] <- pi[m] * bern # every datapoint gets a weight for each model
+    }
+    w[i,] <- w[i,]/(sum(w[i,])) # normalise the weights (not in forumlas)
+  }
+```
+
+The log likelihood is computed according to the given formula. To get $p(\boldsymbol{x}_i)$ the the weights over the models are summed using sum() in the end.
+```{r eval=FALSE}
+llik[it] <- sum(colSums(log(w)))
+```
+
+
+The break criterion is checked beginning with second iteration, as there as a value to compare for the first time. It simply checks if there has been a significant change in the looklikihood compared to the last iteration.
+```{r eval=FALSE}
+if (it > 1){
+  if (abs(llik[it] - llik[it-1]) <= 0.001){
+    cat("No significant change in likelihood:", llik[it-1], "to", llik[it])
+    break
+  }
+}
+```
+
+In the M-step the parameters are updated following the formulas in the lecture slides.
+```{r eval=FALSE}
+#M-step: ML parameter estimation from the data and weights
+for (m in 1:M){
+  # update pis
+  pi[m] <- sum(w[,m]) / n
+  
+  # update mus
+  weighted_x <- vector(length=D)
+  for (i in 1:n){
+    # update the sum with the product of every datapoint with its weigth
+     weighted_x <- weighted_x + sum(w[i,m]) * x[i,] 
+  }
+  mu[m,] <- 1/sum(w[,m]) * weighted_x
+}
+```
+
+
+## Results
+
+
+For the correct amount of clusters, 3, the algorithm approximates \mu really good. In the resulting matrix row 1 belongs to row 2 in true_mu belongs, row 2 to row 3 and row 3 to row 1.
+```{r echo=FALSE}
+set.seed(1234567890)
+max_it <- 100 # max number of EM iterations
+min_change <- 0.1 # min change in log lik between two consecutive iterations
+n=1000 # number of training points
+D=10 # number of dimensions
+x <- matrix(nrow=n, ncol=D) # training data
+true_pi <- vector(length = 3) # true mixing coefficients
+true_mu <- matrix(nrow=3, ncol=D) # true conditional distributions
+true_pi=c(1/3, 1/3, 1/3)
+true_mu[1,]=c(0.5,0.6,0.4,0.7,0.3,0.8,0.2,0.9,0.1,1)
+true_mu[2,]=c(0.5,0.4,0.6,0.3,0.7,0.2,0.8,0.1,0.9,0)
+true_mu[3,]=c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+  for(d in 1:D) {
+    x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+run_em <- function(M) {
+  M = M # number of clusters
+  w <- matrix(nrow = n, ncol = M) # weights
+  pi <- vector(length = M) # mixing coefficients
+  mu <- matrix(nrow = M, ncol = D) # conditional distributions
+  llik <- vector(length = max_it) # log likelihood of the EM iterations
+  # Random initialization of the parameters
+  pi <- runif(M, 0.49, 0.51)
+  pi <- pi / sum(pi)
+  for (m in 1:M) {
+    mu[m, ] <- runif(D, 0.49, 0.51)
+  }
+  
+  for (it in 1:max_it) {
+    for (i in 1:n) {
+      for (m in 1:M) {
+        bern <- 1
+        for (d in 1:D) {
+          bern_d <- mu[m, d] ^ (x[i, d]) * (1 - mu[m, d]) ^ (1 - x[i, d])
+          bern <- bern * bern_d
+        }
+        w[i, m] <- pi[m] * bern
+      }
+      w[i, ] <- w[i, ] / (sum(w[i, ]))
+    }
+    
+    llik[it] <- sum(colSums(log(w)))
+    # Stop if the log likelihood has not changed significantly
+    if (it > 1) {
+      if (abs(llik[it] - llik[it - 1]) <= 0.001) {
+        break
+      }
+    }
+    #M-step: ML parameter estimation from the data and weights
+    for (m in 1:M) {
+      pi[m] <- sum(w[, m]) / n
+      weighted_x <- vector(length = D)
+      for (i in 1:n) {
+        weighted_x <- weighted_x + sum(w[i, m]) * x[i, ]
+      }
+      mu[m, ] <- 1 / sum(w[, m]) * weighted_x
+    }
+  }
+  print(mu)
+}
+
+print("Learned mu for 3 clusters:")
+run_em(3)
+print("True mu:")
+true_mu
+```
+
+
+For too few clusters, in this case only, the tendency of the two mus still have similarity with some of the true mus (learned mu[1] is fairly close to true_mu[2], and learned mu[2] fairly close to true_mu[1], but it is already ~0.1 off. The reason is in the underfitting of the model, as it can't represent the data belonging to the missing clusters. 
+
+```{r}
+print("Learned mu for 2 clusters:")
+run_em(2)
+print("True mu:")
+true_mu
+```
+
+For too many clusters, in this case 4, there no assignments are possible anymore. The reason is, that points of the same cluster may be assigned to different clusters and the model tries to recognise patterns where are none. 
+```{r}
+print("Learned mu for 4 clusters:")
+run_em(4)
+print("True mu:")
+true_mu
+```
+
+# Apendix
+
+```{r eval=FALSE}
+set.seed(1234567890)
+max_it <- 100 # max number of EM iterations
+min_change <- 0.1 # min change in log lik between two consecutive iterations
+n=1000 # number of training points
+D=10 # number of dimensions
+x <- matrix(nrow=n, ncol=D) # training data
+true_pi <- vector(length = 3) # true mixing coefficients
+true_mu <- matrix(nrow=3, ncol=D) # true conditional distributions
+true_pi=c(1/3, 1/3, 1/3)
+true_mu[1,]=c(0.5,0.6,0.4,0.7,0.3,0.8,0.2,0.9,0.1,1)
+true_mu[2,]=c(0.5,0.4,0.6,0.3,0.7,0.2,0.8,0.1,0.9,0)
+true_mu[3,]=c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
+plot(true_mu[1,], type="o", col="blue", ylim=c(0,1))
+points(true_mu[2,], type="o", col="red")
+points(true_mu[3,], type="o", col="green")
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+  for(d in 1:D) {
+    x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+M=4 # number of clusters
+w <- matrix(nrow=n, ncol=M) # weights
+pi <- vector(length = M) # mixing coefficients
+mu <- matrix(nrow=M, ncol=D) # conditional distributions
+llik <- vector(length = max_it) # log likelihood of the EM iterations
+# Random initialization of the parameters
+pi <- runif(M,0.49,0.51)
+pi <- pi / sum(pi)
+for(m in 1:M) {
+  mu[m,] <- runif(D,0.49,0.51)
+}
+
+pi
+mu
+
+
+
+for(it in 1:max_it) {
+  plot(mu[1,], type="o", col="blue", ylim=c(0,1))
+  points(mu[2,], type="o", col="red")
+  points(mu[3,], type="o", col="green")
+  #points(mu[4,], type="o", col="yellow")
+  Sys.sleep(0.5)
+  # E-step: Computation of the weights
+  # iterate all datapoints
+  for (i in 1:n){
+    # iterate all models 
+    for (m in 1:M){
+      bern <- 1 # starting value for bernoulli
+      for (d in 1:D){
+        bern_d <- mu[m,d]^(x[i,d]) * (1-mu[m,d])^(1-x[i,d]) # compute bernoulli for every dimension
+        bern <- bern * bern_d # update the product
+      }
+      w[i,m] <- pi[m] * bern # every datapoint gets a weight for each model
+    }
+    w[i,] <- w[i,]/(sum(w[i,])) # normalise the weights (not in forumlas)
+  }
+  
+  #Log likelihood computation.
+  llik[it] <- sum(colSums(log(w)))
+  
+  cat("iteration: ", it, "log likelihood: ", llik[it], "\n")
+  flush.console()
+  # Stop if the log likelihood has not changed significantly
+  # Your code here
+  if (it > 1){
+    if (abs(llik[it] - llik[it-1]) <= 0.001){
+      cat("No significant change in likelihood:", llik[it-1], "to", llik[it])
+      break
+    }
+  }
+  #M-step: ML parameter estimation from the data and weights
+  for (m in 1:M){
+    # update pis
+    pi[m] <- sum(w[,m]) / n
+    
+    # update mus
+    weighted_x <- vector(length=D)
+    for (i in 1:n){
+       weighted_x <- weighted_x + sum(w[i,m]) * x[i,]
+    }
+    mu[m,] <- 1/sum(w[,m]) * weighted_x
+  }
+ 
+}
+
+```
