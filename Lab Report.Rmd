@@ -289,6 +289,26 @@ print("True mu:")
 true_mu
 ```
 
+## 3. Theory
+
+Question 1 :
+In an ensemble model, is it true that the larger the number B of ensemble members the more flexible the ensemble model?
+
+In bagging , increasing the number B of ensemble members reduces variance by averaging predictions but does not increase flexibility, as flexibility is determined by the complexity of the base models (e.g., tree depth). This leads to more stable and generalized predictions without affecting bias (Pages 169-171). In boosting, increasingB increases flexibility by sequentially correcting errors, reducing bias, and allowing the ensemble to fit more complex patterns. However, this added flexibility also increases the risk of overfitting when B becomes too large or base models are overly complex (Pages 175-178,188). Thus, while bagging stabilizes predictions, boosting balances bias reduction and overfitting risk.
+
+
+Question 2 :
+In AdaBoost, what is the loss function used to train the boosted classifier at each iteration?
+
+In AdaBoost, the exponential loss function is used to train the boosted classifier at each iteration. The loss function is defined as:
+L(y,f(x))=exp(−y⋅f(x)),
+where y represents the true label (+1 or -1), and f(x) is the weighted sum of predictions made by all ensemble members up to the current iteration. The exponential loss is minimized iteratively, and each ensemble member is trained to reduce this loss further by correcting the errors of the previous ensemble members. This sequential minimization allows AdaBoost to effectively reduce bias. Pages 175-177
+
+Question 3 :
+Sketch how you would use cross-validation to select the number of components (or clusters) in unsupervised learning of GMMs.
+
+To use cross-validation for selecting the number of clusters M in Gaussian Mixture Models (GMMs), you first divide the data into training and validation sets. For each candidate M, train a GMM on the training set and compute the log-likelihood on the validation set. Repeat this for different values of M, and select the M that yields the highest validation log-likelihood. This approach helps prevent overfitting and ensures the chosen model generalizes well to unseen data. Page 267
+
 # Apendix
 
 ```{r eval=FALSE}
