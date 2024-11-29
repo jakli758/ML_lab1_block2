@@ -21,7 +21,7 @@ for(i in 1:n) {
   }
 }
 
-M=3 # number of clusters
+M=4 # number of clusters
 w <- matrix(nrow=n, ncol=M) # weights
 pi <- vector(length = M) # mixing coefficients
 mu <- matrix(nrow=M, ncol=D) # conditional distributions
@@ -42,7 +42,7 @@ for(it in 1:max_it) {
   plot(mu[1,], type="o", col="blue", ylim=c(0,1))
   points(mu[2,], type="o", col="red")
   points(mu[3,], type="o", col="green")
-  #points(mu[4,], type="o", col="yellow")
+  points(mu[4,], type="o", col="yellow")
   Sys.sleep(0.5)
   # E-step: Computation of the weights
   # Your code here

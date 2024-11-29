@@ -1,6 +1,9 @@
 ---
-output: pdf_document
+title: Group_A11
+output:
+  html_document: default
 ---
+
 
 # Computer lab block 2
 
@@ -174,7 +177,7 @@ llik[it] <- sum(colSums(log(w)))
 ```
 
 
-The break criterion is checked beginning with second iteration, as there as a value to compare for the first time. It simply checks if there has been a significant change in the looklikihood compared to the last iteration.
+The break criterion is checked beginning with the second iteration, as there is a value to compare for the first time. It simply checks if there has been a significant change in the logliklihood compared to the last iteration.
 ```{r eval=FALSE}
 if (it > 1){
   if (abs(llik[it] - llik[it-1]) <= 0.001){
@@ -270,30 +273,33 @@ run_em <- function(M) {
       mu[m, ] <- 1 / sum(w[, m]) * weighted_x
     }
   }
+  
   print(mu)
 }
+```
 
-print("Learned mu for 3 clusters:")
+```{r echo=FALSE}
+cat("Learned mu for 3 clusters:\n")
 run_em(3)
-print("True mu:")
+cat("True mu:\n")
 true_mu
 ```
 
 
-For too few clusters, in this case only, the tendency of the two mus still have similarity with some of the true mus (learned mu[1] is fairly close to true_mu[2], and learned mu[2] fairly close to true_mu[1], but it is already ~0.1 off. The reason is in the underfitting of the model, as it can't represent the data belonging to the missing clusters. 
+For too few clusters, in this case only 2, the tendency of the two mus still have similarity with some of the true mus (learned mu[1] is fairly close to true_mu[2], and learned mu[2] fairly close to true_mu[1], but it is already ~0.1 off. The reason is in the underfitting of the model, as it can't represent the data belonging to the missing clusters. 
 
-```{r}
-print("Learned mu for 2 clusters:")
+```{r echo=FALSE}
+cat("Learned mu for 2 clusters:\n")
 run_em(2)
-print("True mu:")
+cat("True mu:\n")
 true_mu
 ```
 
 For too many clusters, in this case 4, there no assignments are possible anymore. The reason is, that points of the same cluster may be assigned to different clusters and the model tries to recognise patterns where are none. 
-```{r}
-print("Learned mu for 4 clusters:")
+```{r echo=FALSE}
+cat("Learned mu for 4 clusters:")
 run_em(4)
-print("True mu:")
+cat("True mu:")
 true_mu
 ```
 
